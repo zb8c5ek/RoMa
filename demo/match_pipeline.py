@@ -5,7 +5,7 @@ import numpy as np
 from roma.utils.utils import tensor_to_pil
 from pathlib import Path
 from roma import roma_indoor, roma_outdoor
-
+from visual_match import draw_matches, draw_matches_using_circles
 from colorama import Fore, Style
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -47,7 +47,28 @@ if __name__ == "__main__":
     x1[None], warp[:, W:, :2][None], mode="bilinear", align_corners=False
     )[0]
     warp_im = torch.cat((im2_transfer_rgb,im1_transfer_rgb),dim=2)
-    white_im = torch.ones((H,2*W),device=device)
+    white_im = torch.ones((H, 2*W), device=device)
     vis_im = certainty * warp_im + (1 - certainty) * white_im
     vis_pil = tensor_to_pil(vis_im, unnormalize=False)
-    tensor_to_pil(vis_im, unnormalize=False).save(save_path)
+    # tensor_to_pil(vis_im, unnormalize=False).save(save_path)
+    vis_pil.show()
+
+    # Key Points
+    # Sample matches for estimation
+    matches, certainty = roma_model_outdoor.sample(warp, certainty)
+    W_A, H_A = Image.open(im1_path).size
+    W_B, H_B = Image.open(im2_path).size
+    kpts1, kpts2 = roma_model_outdoor.to_pixel_coordinates(matches, H_A, W_A, H_B, W_B)
+    draw_matches(
+        im1_path, im2_path, kpts1.cpu().numpy(), kpts2.cpu().numpy(), scores=certainty.cpu().numpy(), top_n=500
+    )
+    draw_matches_using_circles(
+        im1_path, im2_path, kpts1.cpu().numpy(), kpts2.cpu().numpy(), scores=certainty.cpu().numpy(), top_n=5000
+    )
+
+    # Draw the Warp
+    from visual_warp import warp_image
+    combined_img_pil, overlay_img_pil = warp_image(
+        im1_path, im2_path, kpts1.cpu().numpy(), kpts2.cpu().numpy(),
+        scores=certainty.cpu().numpy(), threshold=0.8
+    )

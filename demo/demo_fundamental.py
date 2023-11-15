@@ -1,10 +1,12 @@
 from PIL import Image
 import torch
 import cv2
-from roma import roma_outdoor
+from roma import roma_outdoor, roma_indoor
+from colorama import Fore, Style
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+torch.hub.set_dir("D:/TORCH_HUB")
+print("Torch HUB DIR: ", Fore.CYAN + torch.hub.get_dir() + Style.RESET_ALL)
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
@@ -18,6 +20,7 @@ if __name__ == "__main__":
 
     # Create model
     roma_model = roma_outdoor(device=device)
+    # roma_model_in = roma_indoor(device=device)
 
 
     W_A, H_A = Image.open(im1_path).size
