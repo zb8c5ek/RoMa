@@ -4,3 +4,5 @@
 vis*
 workspace*
 .idea
+*.egg
+build

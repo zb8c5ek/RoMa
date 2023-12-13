@@ -1,5 +1,8 @@
 import os
-from .models import roma_outdoor, roma_indoor
+try:
+    from .models import roma_outdoor, roma_indoor
+except ImportError:
+    from models import roma_outdoor, roma_indoor
 
 DEBUG_MODE = False
 RANK = int(os.environ.get('RANK', default = 0))

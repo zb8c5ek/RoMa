@@ -28,6 +28,13 @@ def extract_matchings_and_fundamental_matrix(im1_path, im2_path):
     return kpts1, kpts2, F, mask
 
 
+
+def extract_matchings_in_a_folder(dp_folder, sequential_matching=True):
+    """
+    return matching in
+    """
+
+
 if __name__ == "__main__":
     from argparse import ArgumentParser
     parser = ArgumentParser()
