@@ -4,7 +4,7 @@ from PIL import Image
 from colorama import Fore, Style
 from pathlib import Path
 from roma import roma_outdoor
-
+import time
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 torch.hub.set_dir("D:/TORCH_HUB")
 print("Torch HUB DIR: ", Fore.CYAN + torch.hub.get_dir() + Style.RESET_ALL)
@@ -18,7 +18,7 @@ def load_data(fp_input):
     return image_filename_pairs, matched_kps
 
 
-def extract_matchings_and_fundamental_matrix(im1_path, im2_path):
+def extract_matchings_and_fundamental_matrix(im1_path, im2_path, fp_output):
     roma_model = roma_outdoor(device=device)
     # roma_model_in = roma_indoor(device=device)
 
@@ -51,7 +51,7 @@ def extract_matchings_in_a_folder(dp_folder, fp_output, sequential_matching=True
 
     # PARAMS
     roma_model = roma_outdoor(device=device)
-    # roma_model_in = roma_indoor(device=device)
+    # roma_model_in =WW roma_indoor(device=device)
 
     if sequential_matching:
         for i in tqdm(range(1, len(fps_imgs))):
@@ -65,19 +65,19 @@ def extract_matchings_in_a_folder(dp_folder, fp_output, sequential_matching=True
             with torch.no_grad():
                 warp, certainty = roma_model.match(current_fp, target_fp, device=device)
 
-            # Sample matches for estimation
-            matches, certainty = roma_model.sample(warp, certainty)
-            kpts1_pt, kpts2_pt = roma_model.to_pixel_coordinates(matches, H_A, W_A, H_B, W_B)
+                # Sample matches for estimation
+                matches, certainty = roma_model.sample(warp, certainty)
+                kpts1_pt, kpts2_pt = roma_model.to_pixel_coordinates(matches, H_A, W_A, H_B, W_B)
 
-            kpts1 = kpts1_pt.cpu().numpy()
-            kpts2 = kpts2_pt.cpu().numpy()
+                kpts1 = kpts1_pt.cpu().numpy()
+                kpts2 = kpts2_pt.cpu().numpy()
 
-            del kpts1_pt, kpts2_pt
+            del kpts1_pt, kpts2_pt, warp, certainty, matches
             torch.cuda.empty_cache()
+            time.sleep(1)
 
             F, mask = cv2.findFundamentalMat(kpts1, kpts2, ransacReprojThreshold=0.2,
                                              method=cv2.USAC_MAGSAC, confidence=0.999999, maxIters=10000)
-
 
             good_kpts1 = kpts1[mask.ravel() == 1]
             good_kpts2 = kpts2[mask.ravel() == 1]
