@@ -14,16 +14,17 @@ print("Torch HUB DIR: ", Fore.CYAN + torch.hub.get_dir() + Style.RESET_ALL)
 
 
 if __name__ == "__main__":
-    from argparse import ArgumentParser
-    parser = ArgumentParser()
-    parser.add_argument("--im_A_path", default="assets/sacre_coeur_A.jpg", type=str)
-    parser.add_argument("--im_B_path", default="assets/sacre_coeur_B.jpg", type=str)
-    parser.add_argument("--save_path", default="demo/dkmv3_warp_sacre_coeur.jpg", type=str)
+    # from argparse import ArgumentParser
+    # parser = ArgumentParser()
+    # parser.add_argument("--im_A_path", default="assets/sacre_coeur_A.jpg", type=str)
+    # parser.add_argument("--im_B_path", default="assets/sacre_coeur_B.jpg", type=str)
+    # parser.add_argument("--save_path", default="demo/dkmv3_warp_sacre_coeur.jpg", type=str)
 
-    args, _ = parser.parse_known_args()
-    im1_path = args.im_A_path
-    im2_path = args.im_B_path
-    save_path = Path(args.save_path).resolve()
+    # args, _ = parser.parse_known_args()
+    from pathlib import Path
+    im1_path = Path(r"E:\psd_data\data_calib_20231129\work_dir\traj_analyzer0.050\length_0070_0080_num_2\segment_0000\frame-001431_1701315300500.jpg").resolve()
+    im2_path = Path(r"E:\psd_data\data_calib_20231129\work_dir\traj_analyzer0.050\length_0070_0080_num_2\segment_0000\frame-001432_1701315300550.jpg").resolve()
+    save_path = Path('./.demo.png').resolve()
 
     # Create model
     roma_model_indoor = roma_indoor(device=device)
@@ -46,7 +47,7 @@ if __name__ == "__main__":
     im1_transfer_rgb = F.grid_sample(
     x1[None], warp[:, W:, :2][None], mode="bilinear", align_corners=False
     )[0]
-    warp_im = torch.cat((im2_transfer_rgb,im1_transfer_rgb),dim=2)
+    warp_im = torch.cat((im2_transfer_rgb, im1_transfer_rgb),dim=2)
     white_im = torch.ones((H,2*W),device=device)
     vis_im = certainty * warp_im + (1 - certainty) * white_im
     vis_pil = tensor_to_pil(vis_im, unnormalize=False)
