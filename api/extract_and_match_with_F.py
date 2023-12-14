@@ -67,10 +67,17 @@ def extract_matchings_in_a_folder(dp_folder, fp_output, sequential_matching=True
 
             # Sample matches for estimation
             matches, certainty = roma_model.sample(warp, certainty)
-            kpts1, kpts2 = roma_model.to_pixel_coordinates(matches, H_A, W_A, H_B, W_B)
-            F, mask = cv2.findFundamentalMat(kpts1.cpu().numpy(), kpts2.cpu().numpy(), ransacReprojThreshold=0.2,
-                                             method=cv2.USAC_MAGSAC, confidence=0.999999, maxIters=10000)
+            kpts1_pt, kpts2_pt = roma_model.to_pixel_coordinates(matches, H_A, W_A, H_B, W_B)
+
+            kpts1 = kpts1_pt.cpu().numpy()
+            kpts2 = kpts2_pt.cpu().numpy()
+
+            del kpts1_pt, kpts2_pt
             torch.cuda.empty_cache()
+
+            F, mask = cv2.findFundamentalMat(kpts1, kpts2, ransacReprojThreshold=0.2,
+                                             method=cv2.USAC_MAGSAC, confidence=0.999999, maxIters=10000)
+
 
             good_kpts1 = kpts1[mask.ravel() == 1]
             good_kpts2 = kpts2[mask.ravel() == 1]
