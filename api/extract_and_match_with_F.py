@@ -18,7 +18,7 @@ def load_data(fp_input):
     return image_filename_pairs, matched_kps
 
 
-def extract_matchings_and_fundamental_matrix(im1_path, im2_path, fp_output):
+def extract_matchings_and_fundamental_matrix(im1_path, im2_path):
     roma_model = roma_outdoor(device=device)
     # roma_model_in = roma_indoor(device=device)
 
