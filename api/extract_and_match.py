@@ -8,17 +8,10 @@ import time
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 torch.hub.set_dir("D:/TORCH_HUB")
 print("Torch HUB DIR: ", Fore.CYAN + torch.hub.get_dir() + Style.RESET_ALL)
-
-import pickle
-
-
-def load_data(fp_input):
-    with open(fp_input, 'rb') as f:
-        image_filename_pairs, matched_kps = pickle.load(f)
-    return image_filename_pairs, matched_kps
+import numpy as np
 
 
-def extract_matchings_and_fundamental_matrix(im1_path, im2_path):
+def extract_matches_and_fundamental_matrix(im1_path, im2_path):
     roma_model = roma_outdoor(device=device)
     # roma_model_in = roma_indoor(device=device)
 
@@ -38,7 +31,7 @@ def extract_matchings_and_fundamental_matrix(im1_path, im2_path):
     return kpts1, kpts2, F, mask
 
 
-def extract_matchings_in_a_folder(dp_folder, fp_output, sequential_matching=True):
+def extract_matches_in_a_folder(dp_folder, dp_output, start_pair=0, sequential_matching=True):
     """
     return matching among images in dp_folder,
     """
@@ -46,51 +39,57 @@ def extract_matchings_in_a_folder(dp_folder, fp_output, sequential_matching=True
     dp_folder = Path(dp_folder).resolve()
     fps_imgs = list(dp_folder.glob("*.jpg"))
     fps_imgs.sort()
-    image_filename_pairs = []
-    matched_kps = []
 
     # PARAMS
     roma_model = roma_outdoor(device=device)
-    # roma_model_in =WW roma_indoor(device=device)
-
+    dp_output = Path(dp_output).resolve()
+    # roma_model_in = roma_indoor(device=device)
+    dp_output.mkdir(parents=True, exist_ok=True)
     if sequential_matching:
         for i in tqdm(range(1, len(fps_imgs))):
+
+            if i < start_pair:
+                continue
+
             current_fp = fps_imgs[i - 1]
             target_fp = fps_imgs[i]
-            image_filename_pairs.append((current_fp.name, target_fp.name))
 
-            W_A, H_A = Image.open(current_fp).size
-            W_B, H_B = Image.open(target_fp).size
+            fp_output = dp_output / ("matched_kps-%03d-f1_%s-f2_%s.txt" % (i, current_fp.stem, target_fp.stem))
+            if fp_output.is_file():
+                data = np.loadtxt(fp_output)
+                good_kpts1, good_kpts2 = data[:, :2], data[:, 2:]
+            else:
 
-            with torch.no_grad():
-                warp, certainty = roma_model.match(current_fp, target_fp, device=device)
+                W_A, H_A = Image.open(current_fp).size
+                W_B, H_B = Image.open(target_fp).size
 
-                # Sample matches for estimation
-                matches, certainty = roma_model.sample(warp, certainty)
-                kpts1_pt, kpts2_pt = roma_model.to_pixel_coordinates(matches, H_A, W_A, H_B, W_B)
+                with torch.no_grad():
+                    warp, certainty = roma_model.match(current_fp, target_fp, device=device)
 
-                kpts1 = kpts1_pt.cpu().numpy()
-                kpts2 = kpts2_pt.cpu().numpy()
+                    # Sample matches for estimation
+                    matches, certainty = roma_model.sample(warp, certainty)
+                    kpts1_pt, kpts2_pt = roma_model.to_pixel_coordinates(matches, H_A, W_A, H_B, W_B)
 
-            del kpts1_pt, kpts2_pt, warp, certainty, matches
-            torch.cuda.empty_cache()
-            time.sleep(1)
+                    kpts1 = kpts1_pt.cpu().numpy()
+                    kpts2 = kpts2_pt.cpu().numpy()
 
-            F, mask = cv2.findFundamentalMat(kpts1, kpts2, ransacReprojThreshold=0.2,
-                                             method=cv2.USAC_MAGSAC, confidence=0.999999, maxIters=10000)
+                del kpts1_pt, kpts2_pt, warp, certainty, matches
+                torch.cuda.empty_cache()
+                time.sleep(2)
 
-            good_kpts1 = kpts1[mask.ravel() == 1]
-            good_kpts2 = kpts2[mask.ravel() == 1]
-            matched_kps.append((good_kpts1, good_kpts2))
+                F, mask = cv2.findFundamentalMat(kpts1, kpts2, ransacReprojThreshold=0.2,
+                                                 method=cv2.USAC_MAGSAC, confidence=0.999999, maxIters=10000)
 
-    # PACK image_filename_pairs AND matched_kps INTO A PICKLE FILE
-    with open(fp_output, 'wb') as f:
-        pickle.dump((image_filename_pairs, matched_kps), f)
+                good_kpts1 = kpts1[mask.ravel() == 1]
+                good_kpts2 = kpts2[mask.ravel() == 1]
+
+                # PACK image_filename_pairs AND matched_kps INTO A PICKLE FILE
+                np.savetxt(fp_output, np.hstack((good_kpts1, good_kpts2)), delimiter=' ', fmt='%10.5f')
 
 
 def main():
     from fire import Fire
-    cli = {"pair": extract_matchings_and_fundamental_matrix, "folder": extract_matchings_in_a_folder}
+    cli = {"pair": extract_matches_and_fundamental_matrix, "folder": extract_matches_in_a_folder}
     Fire(cli)
 
 
