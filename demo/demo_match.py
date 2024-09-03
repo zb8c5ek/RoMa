@@ -22,8 +22,8 @@ if __name__ == "__main__":
 
     # args, _ = parser.parse_known_args()
     from pathlib import Path
-    im1_path = Path(r"E:\psd_data\data_calib_20231129\work_dir\traj_analyzer0.050\length_0070_0080_num_2\segment_0000\frame-001431_1701315300500.jpg").resolve()
-    im2_path = Path(r"E:\psd_data\data_calib_20231129\work_dir\traj_analyzer0.050\length_0070_0080_num_2\segment_0000\frame-001432_1701315300550.jpg").resolve()
+    im1_path = Path(r"E:\Parkings\ParkIndoor\seg-40\images\frame000001.png").resolve()
+    im2_path = Path(r"E:\Parkings\ParkIndoor\seg-40\images\frame000003.png").resolve()
     save_path = Path('./.demo.png').resolve()
 
     # Create model
@@ -51,4 +51,4 @@ if __name__ == "__main__":
     white_im = torch.ones((H,2*W),device=device)
     vis_im = certainty * warp_im + (1 - certainty) * white_im
     vis_pil = tensor_to_pil(vis_im, unnormalize=False)
-    tensor_to_pil(vis_im, unnormalize=False).save(save_path)
+    tensor_to_pil(vis_im, unnormalize=False).show()
